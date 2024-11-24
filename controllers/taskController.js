@@ -109,42 +109,33 @@ exports.updateTask = async (req, res) => {
       assignedUser.payments.push(payment._id);
       await assignedUser.save();
 
-      // Add fee to Super Admin's account
-      const superAdminId = process.env.SUPERADMIN_USER_ID;
-      const superAdmin = await User.findById(superAdminId);
+      const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
 
       if (superAdmin) {
         superAdmin.payments.push(payment._id);
         await superAdmin.save();
 
-        // Notify Super Admin via email
-        const message = `Hello ${superAdmin.first_name},
-
-A task has been completed, and a fee of $${fee} has been applied.
-
-Regards,
-Your Application Team`;
 
         await sendEmail({
           email: superAdmin.email,
-          subject: 'Task Completion Fee Applied',
-          message,
+            subject: 'Task Completion Fee Applied',
+            template: 'paymentTemplate.html',
+            context: {
+              team_name: assignedUser.username, 
+              amount: fee,
+            },
         });
-      }
 
-      // Optionally, notify the user
-      const notificationMessage = `Hello ${assignedUser.first_name},
-
-Your task "${task.title}" has been approved. A payment of $${paymentAmount} has been processed to your account.
-
-Regards,
-Your Application Team`;
-
-      await sendEmail({
-        email: assignedUser.email,
-        subject: 'Task Approved and Payment Processed',
-        message: notificationMessage,
-      });
+        await sendEmail({
+          email: assignedUser.email,
+            subject: 'Task Completion Fee Applied',
+            template: 'paymentTemplate.html',
+            context: {
+              team_name: "", 
+              amount: fee,
+            },
+        });
+    }
     }
 
     await task.save();

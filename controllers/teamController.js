@@ -68,21 +68,19 @@ exports.inviteMember = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Create invitation URL
-    const inviteUrl = `${process.env.CLIENT_URL}/teaminvite/${inviteToken}`;
+    const inviteUrl = `${process.env.CLIENT_URL}/teams/teaminvite/${inviteToken}`;
 
-    // HTML email with invite button
-    const message = `
-      You have been invited to join the team: ${team.name}.
-      Please click the button below to accept the invitation:
-      <a href="${inviteUrl}" style="display: inline-block; padding: 10px 20px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px;">Accept Invitation</a>
-      If you did not expect this invitation, please ignore this email.
-    `;
     await sendEmail({
       email: user.email,
       subject: `Invitation to Join Team: ${team.name}`,
-      message: message, // Optional if using HTML
-      html: message,
+      template: 'invitationTemplate.html',
+      context: {
+        team_name: team.name,
+        inviter_name: req.user.first_name || 'Team Lead', // Assuming req.user has first_name
+        invite_url: inviteUrl,
+      },
     });
+;
 
     // Add to invitations
     user.invitations.push(team._id);
@@ -141,14 +139,33 @@ exports.acceptInvitation = async (req, res) => {
 
     await user.save();
 
-    // Optionally, send confirmation email
-    const message = `Hello ${user.first_name},\n\nYou have successfully joined the team: ${team.name}.\n`;
+     // Optionally, send confirmation email to inviter
+     const inviter = await User.findById(team.created_by); // Assuming 'created_by' is the inviter
 
-    await sendEmail({
+     if (inviter) {
+       await sendEmail({
+         email: inviter.email,
+         subject: 'Your Team Invitation Has Been Accepted',
+         template: 'invitationAcceptedTemplate2.html',
+         context: {
+           invitee_name: user.first_name,
+           team_name: team.name,
+         }
+       });
+     }
+
+     await sendEmail({
       email: user.email,
-      subject: 'Team Invitation Accepted',
-      message,
+      subject: `Welcome to the Team: ${team.name}`,
+      template: 'invitationAcceptedTemplate.html', // Reuse welcome template or create a specific one
+      context: {
+        first_name:  user.first_name,
+        team_name: team.name,
+        team_url: `${process.env.CLIENT_URL}/teams/team/${team.id}`,
+      }
     });
+
+
 
     res.status(200).json({ success: true, message: 'Invitation accepted and team joined successfully' });
   } catch (error) {

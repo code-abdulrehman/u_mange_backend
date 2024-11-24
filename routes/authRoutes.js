@@ -1,30 +1,17 @@
 const express = require('express');
-const { register, login, forgotPassword, resetPassword } = require('../controllers/authController');
-const { check } = require('express-validator');
-
 const router = express.Router();
+const { register, login, forgotPassword, resetPassword } = require('../controllers/authController');
 
-// @route   POST /api/auth/register
-router.post(
-  '/register',
-  [
-    check('username', 'Username is required').not().isEmpty(),
-    check('first_name', 'First name is required').not().isEmpty(),
-    check('skill', 'Skill is required').not().isEmpty(),
-    check('last_name', 'Last name is required').not().isEmpty(),
-    check('email', 'Please include a valid email').isEmail(),
-    check('password', 'Password must be 6 or more characters').isLength({ min: 6 }),
-  ],
-  register
-);
+// Register Route
+router.post('/register', register);
 
-// @route   POST /api/auth/login
+// Login Route
 router.post('/login', login);
 
-// @route   POST /api/auth/forgotpassword
+// Forgot Password Route
 router.post('/forgotpassword', forgotPassword);
 
-// @route   PUT /api/auth/resetpassword/:resettoken
+// Reset Password Route
 router.put('/resetpassword/:resettoken', resetPassword);
 
 module.exports = router;

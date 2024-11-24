@@ -2,7 +2,11 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
 const { validationResult } = require('express-validator');
-const { v4: uuidv4 } = require('uuid'); // Import UUID
+const { v4: uuidv4 } = require('uuid');
+const path = require('path'); // For handling file paths
+const fs = require('fs'); // For reading the HTML template
+
+
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
@@ -39,6 +43,23 @@ exports.register = async (req, res) => {
     await user.save();
 
     const token = user.getSignedJwtToken();
+
+    // Send Welcome Email
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Welcome to e-setup!',
+        template: 'welcomeTemplate.html',
+        context: {
+          first_name: user.first_name,
+          login_url: `${process.env.CLIENT_URL}/login`,
+        },
+
+      });
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      // Optionally, handle email sending failure (e.g., log it, notify admin)
+    }
 
     res.status(201).json({ success: true, token });
   } catch (error) {
@@ -109,16 +130,22 @@ exports.forgotPassword = async (req, res) => {
     // Send email
     const resetUrl = `${process.env.CLIENT_URL}/passwordreset/${resetToken}`;
 
-
-    const message = `You are receiving this email because you (or someone else) has requested the reset of a password.\n\n
-Please make a PUT request to: \n\n ${resetUrl} \n\n
-If you did not request this, please ignore this email.`;;
-
-    await sendEmail({
-      email: user.email,
-      subject: 'Password Reset Request',
-      message,
-    });
+try {
+  await sendEmail({
+    email: user.email,
+    subject: 'Password Reset Request',
+    template: 'passwordResetTemplate.html',
+    context: {
+      reset_url: resetUrl,
+    },
+  });
+} catch (emailError) {
+  console.error('Error sending password reset email:', emailError);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save({ validateBeforeSave: false });
+  return res.status(500).json({ success: false, message: 'Email could not be sent' });
+}    
 
     res.status(200).json({ success: true, message: 'Email sent' });
   } catch (error) {
@@ -155,13 +182,21 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     // Optionally, send a confirmation email
-    const message = `Hello ${user.first_name},\n\nThis is a confirmation that the password for your account ${user.email} has been changed successfully.\n`;
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Changed Successfully',
+        template: 'passwordChangedTemplate.html',
+        context: {
+          first_name: user.first_name,
+          email: user.email,
+        },
+      });
+    } catch (emailError) {
+      console.error('Error sending password changed confirmation email:', emailError);
+      // Optionally, handle email sending failure
+    }
 
-    await sendEmail({
-      email: user.email,
-      subject: 'Password Changed Successfully',
-      message,
-    });
 
     res.status(200).json({ success: true, message: 'Password updated successfully' });
   } catch (error) {

@@ -2,6 +2,7 @@ const Team = require('../models/Team');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
+
 // @desc    Create a new team
 // @route   POST /api/teams
 // @access  Private (Admin, Super Admin)
@@ -190,6 +191,81 @@ exports.getTeams = async (req, res) => {
     res.status(200).json({ success: true, count: teams.length, data: teams });
   } catch (error) {
     console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+// @desc    Get single team by ID
+// @route   GET /api/teams/:id
+// @access  Private (Admin, Super Admin, Team Members)
+exports.getTeamById = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id)
+      .populate('members', 'username email skill per_hour_rate expertise')
+      .populate('created_by', 'username email');
+
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    // Authorization: Admins, Super Admins, or team members can view the team
+    if (
+      req.user.role !== 'admin' &&
+      req.user.role !== 'super_admin' &&
+      !team.members.some(member => member._id.toString() === req.user.id)
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this team' });
+    }
+
+    res.status(200).json({ success: true, data: team });
+  } catch (error) {
+    console.error(error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+    res.status(500).send('Server Error');
+  }
+};
+
+// @desc    Delete a team
+// @route   DELETE /api/teams/:id
+// @access  Private (Admin, Super Admin, Team Creator)
+exports.deleteTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    // Authorization: Admins, Super Admins, or the user who created the team can delete it
+    if (
+      req.user.role !== 'admin' &&
+      req.user.role !== 'super_admin' &&
+      team.created_by.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this team' });
+    }
+
+    // Remove team from all members' teams array
+    await User.updateMany(
+      { _id: { $in: team.members } },
+      { $pull: { teams: team._id } }
+    );
+
+    // Optionally, handle tasks associated with the team
+    // For example, you might want to delete all tasks under this team or reassign them
+
+    // Finally, delete the team
+    await team.remove();
+
+    res.status(200).json({ success: true, message: 'Team removed' });
+  } catch (error) {
+    console.error(error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
     res.status(500).send('Server Error');
   }
 };

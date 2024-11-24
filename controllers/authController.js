@@ -17,7 +17,7 @@ exports.register = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { username, first_name, last_name, email, password, skill } = req.body;
+  const { username, first_name, last_name, email, password, skill, national_id, country } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -37,7 +37,8 @@ exports.register = async (req, res) => {
       email,
       password,
       skill,
-      natila_id: uuidv4(),
+      national_id,
+      country
     });
 
     await user.save();
@@ -72,7 +73,7 @@ exports.register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, peerId } = req.body;
 
   // Validate input
   if (!email || !password) {
@@ -94,14 +95,21 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
+
+    if (peerId) {
+      user.peerId = peerId;
+      await user.save();
+    }
+
     const token = user.getSignedJwtToken();
 
-    res.status(200).json({ success: true, token });
+    res.status(200).json({ success: true, token, peerId: user.peerId });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
   }
 };
+
 
 // @desc    Forgot password
 // @route   POST /api/auth/forgotpassword
@@ -128,7 +136,7 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
     // Send email
-    const resetUrl = `${process.env.CLIENT_URL}/passwordreset/${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL}/verify-token/${resetToken}`;
 
 try {
   await sendEmail({

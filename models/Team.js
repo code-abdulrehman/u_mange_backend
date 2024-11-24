@@ -10,6 +10,7 @@ const TeamSchema = new mongoose.Schema({
     delete: { type: Boolean, default: false },
     read: { type: Boolean, default: true },
     edit: { type: Boolean, default: false },
+    chat: { type: Boolean, default: true }, // New field for chat permissions
   },
   max_tasks: { type: Number, default: 5 },
 }, { timestamps: true });

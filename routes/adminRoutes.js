@@ -1,5 +1,7 @@
+// routes/adminRoutes.js
+
 const express = require('express');
-const { getRoles, updateRoles } = require('../controllers/adminController');
+const { getRoles, updateRoles, updateFee } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
@@ -14,5 +16,8 @@ router.get('/roles', getRoles);
 
 // @route   PUT /api/admin/roles
 router.put('/roles', updateRoles);
+
+// @route   PUT /api/admin/fee
+router.put('/fee', updateFee);
 
 module.exports = router;

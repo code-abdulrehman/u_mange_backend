@@ -1,14 +1,11 @@
 const Task = require('../models/Task');
 const Team = require('../models/Team');
 const sendEmail = require('../utils/sendEmail');
-const User = require('../models/User'); 
+const User = require('../models/User');
+const Setting = require('../models/Setting');
+const Payment = require('../models/Payment');
 
-// @desc    Create a new task
-// @route   POST /api/tasks
-// @access  Private (Admin, Team Lead)
-// @desc    Create a new task
-// @route   POST /api/tasks
-// @access  Private (Admin, Team Lead)
+// Create Task
 exports.createTask = async (req, res) => {
   const { title, description, teamId, assignedTo } = req.body;
 
@@ -61,15 +58,12 @@ exports.createTask = async (req, res) => {
   }
 };
 
-
-// @desc    Update task status
-// @route   PUT /api/tasks/:id
-// @access  Private (Assigned User, Admin)
+// Update Task
 exports.updateTask = async (req, res) => {
   const { status, review } = req.body;
 
   try {
-    let task = await Task.findById(req.params.id).populate('created_by', 'email');
+    let task = await Task.findById(req.params.id).populate('created_by', 'email role');
 
     if (!task) {
       return res.status(404).json({ success: false, message: 'Task not found' });
@@ -84,9 +78,73 @@ exports.updateTask = async (req, res) => {
     task.review = review || task.review;
 
     // If reviewed and approved
-    if (review === 'approved') {
+    if (review === 'approved' && task.payment_status !== 'approved') {
       task.payment_status = 'approved';
-      // Implement payment sending logic here
+
+      // Fetch task details
+      const assignedUser = await User.findById(task.assigned_to);
+      const perHourRate = assignedUser.per_hour_rate;
+
+      // Calculate payment
+      const paymentAmount = perHourRate; // Adjust based on your logic
+
+      // Fetch current fee percentage
+      const settings = await Setting.findOne();
+      const feePercentage = settings ? settings.feePercentage : 0.7;
+      const fee = parseFloat(((paymentAmount * feePercentage) / 100).toFixed(2));
+
+      // Create payment for the assigned user
+      const payment = new Payment({
+        user: assignedUser._id,
+        amount: paymentAmount,
+        fee: fee,
+        total_amount: parseFloat((paymentAmount + fee).toFixed(2)),
+        status: 'completed',
+        processed_by: req.user.id,
+      });
+
+      await payment.save();
+
+      // Update user's payment records
+      assignedUser.payments.push(payment._id);
+      await assignedUser.save();
+
+      // Add fee to Super Admin's account
+      const superAdminId = process.env.SUPERADMIN_USER_ID;
+      const superAdmin = await User.findById(superAdminId);
+
+      if (superAdmin) {
+        superAdmin.payments.push(payment._id);
+        await superAdmin.save();
+
+        // Notify Super Admin via email
+        const message = `Hello ${superAdmin.first_name},
+
+A task has been completed, and a fee of $${fee} has been applied.
+
+Regards,
+Your Application Team`;
+
+        await sendEmail({
+          email: superAdmin.email,
+          subject: 'Task Completion Fee Applied',
+          message,
+        });
+      }
+
+      // Optionally, notify the user
+      const notificationMessage = `Hello ${assignedUser.first_name},
+
+Your task "${task.title}" has been approved. A payment of $${paymentAmount} has been processed to your account.
+
+Regards,
+Your Application Team`;
+
+      await sendEmail({
+        email: assignedUser.email,
+        subject: 'Task Approved and Payment Processed',
+        message: notificationMessage,
+      });
     }
 
     await task.save();
@@ -98,9 +156,7 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// @desc    Get all tasks
-// @route   GET /api/tasks
-// @access  Private (Admin, Super Admin, Team Members)
+// Get All Tasks
 exports.getTasks = async (req, res) => {
   try {
     let tasks;
@@ -114,6 +170,84 @@ exports.getTasks = async (req, res) => {
     res.status(200).json({ success: true, count: tasks.length, data: tasks });
   } catch (error) {
     console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Get Task by ID
+exports.getTaskById = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id)
+      .populate('assigned_to', 'username email')
+      .populate('created_by', 'username email');
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Authorization: Admins, Super Admins, or the assigned user can view the task
+    if (
+      req.user.role !== 'admin' &&
+      req.user.role !== 'super_admin' &&
+      task.assigned_to._id.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this task' });
+    }
+
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    console.error(error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+    res.status(500).send('Server Error');
+  }
+};
+
+// Delete Task
+exports.deleteTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Authorization: Admins, Super Admins, or the user who created the task can delete it
+    if (
+      req.user.role !== 'admin' &&
+      req.user.role !== 'super_admin' &&
+      task.created_by.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
+    }
+
+    // Remove task from the team's tasks array
+    const team = await Team.findById(task.team);
+    if (team) {
+      team.tasks = team.tasks.filter(taskId => taskId.toString() !== task._id.toString());
+      await team.save();
+    }
+
+    // Remove task from the assigned user's tasks array
+    const user = await User.findById(task.assigned_to);
+    if (user) {
+      user.tasks = user.tasks.filter(taskId => taskId.toString() !== task._id.toString());
+      await user.save();
+    }
+
+    // Optionally, delete associated payments if any
+    await Payment.deleteMany({ task: task._id });
+
+    // Finally, delete the task
+    await task.remove();
+
+    res.status(200).json({ success: true, message: 'Task removed' });
+  } catch (error) {
+    console.error(error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
     res.status(500).send('Server Error');
   }
 };

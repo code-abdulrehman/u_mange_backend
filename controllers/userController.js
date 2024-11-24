@@ -50,16 +50,6 @@ exports.updateUser = async (req, res) => {
     // Update fields
     const updates = req.body;
 
-    // If role is being updated, send email notification
-    if (updates.role && updates.role !== user.role) {
-      const message = `Hello ${user.first_name},\n\nYour role has been updated to ${updates.role}.`;
-
-      await sendEmail({
-        email: user.email,
-        subject: 'Role Update Notification',
-        message,
-      });
-    }
 
     user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).select('-password');
 
@@ -92,6 +82,41 @@ exports.deleteUser = async (req, res) => {
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    res.status(500).send('Server Error');
+  }
+};
+
+
+// @desc    Get list of all expertise
+// @route   GET /api/users/expertise
+// @access  Private (Admin, Super Admin)
+exports.getExpertiseList = async (req, res) => {
+  try {
+    const expertise = await User.distinct('expertise');
+    res.status(200).json({ success: true, data: expertise });
+  } catch (error) {
+    console.error('Error fetching expertise list:', error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// @access  Private (Admin, Super Admin)
+exports.getCountriesList = async (req, res) => {
+  try {
+    const countries = await User.distinct('country');
+    res.status(200).json({ success: true, data: countries });
+  } catch (error) {
+    console.error('Error fetching countries list:', error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.getUserPeerIds = async (req, res) => {
+  try {
+    const users = await User.find().select('peerId first_name last_name');
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    console.error('Error fetching peerIds:', error.message);
     res.status(500).send('Server Error');
   }
 };

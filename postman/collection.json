@@ -1,13 +1,13 @@
 {
   "info": {
-    "name": "Backend API",
-    "_postman_id": "d3c4a2b4-8c5f-4f5e-9e2a-1f2b3c4d5e6f",
-    "description": "Collection for Backend API Endpoints",
+    "name": "MyApp API",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "Postman Collection for MyApp API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Authentication",
+      "name": "Auth Routes",
       "item": [
         {
           "name": "Register User",
@@ -16,17 +16,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"john_doe\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\",\n  \"skill\": \"Developer\",\n  \"national_id\": \"12345-6789012-3\",\n  \"country\": \"Pakistan\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/register",
+              "raw": "{{base_url}}/auth/register",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "register"]
+              "path": ["auth", "register"]
             }
           },
           "response": []
@@ -38,17 +39,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\",\n  \"peerId\": \"unique-peer-id-12345\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/login",
+              "raw": "{{base_url}}/auth/login",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
+              "path": ["auth", "login"]
             }
           },
           "response": []
@@ -60,7 +62,8 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -68,9 +71,9 @@
               "raw": "{\n  \"email\": \"john@example.com\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/forgotpassword",
+              "raw": "{{base_url}}/auth/forgotpassword",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "forgotpassword"]
+              "path": ["auth", "forgotpassword"]
             }
           },
           "response": []
@@ -82,39 +85,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"password\": \"newpassword123\"\n}"
+              "raw": "{\n  \"password\": \"NewPassword123!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/auth/resetpassword/{{resettoken}}",
+              "raw": "{{base_url}}/auth/resetpassword/{{resettoken}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "auth", "resetpassword", "{{resettoken}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Login Super Admin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
+              "path": ["auth", "resetpassword", "{{resettoken}}"]
             }
           },
           "response": []
@@ -122,10 +104,10 @@
       ]
     },
     {
-      "name": "Users",
+      "name": "Admin Routes",
       "item": [
         {
-          "name": "Get All Users",
+          "name": "Get Roles and Permissions",
           "request": {
             "method": "GET",
             "header": [
@@ -136,34 +118,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/users",
+              "raw": "{{base_url}}/admin/roles",
               "host": ["{{base_url}}"],
-              "path": ["api", "users"]
+              "path": ["admin", "roles"]
             }
           },
           "response": []
         },
         {
-          "name": "Get User by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/users/{{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{userId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update User",
+          "name": "Update Roles",
           "request": {
             "method": "PUT",
             "header": [
@@ -174,87 +137,46 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Jane\",\n  \"role\": \"admin\"\n}"
+              "raw": "{\n  \"role\": \"admin\",\n  \"permissions\": [\"read\", \"update\", \"delete\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/users/{{userId}}",
+              "raw": "{{base_url}}/admin/roles",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{userId}}"]
+              "path": ["admin", "roles"]
             }
           },
           "response": []
         },
         {
-          "name": "Delete User",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/users/{{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{userId}}"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Admin",
-      "item": [
-        {
-          "name": "Get All Roles and Permissions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{super_admin_token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/roles",
-              "host": ["{{base_url}}"],
-              "path": ["api", "admin", "roles"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Roles and Permissions",
+          "name": "Update Fee Percentage",
           "request": {
             "method": "PUT",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{super_admin_token}}",
+                "value": "Bearer {{token}}",
                 "type": "text"
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"role\": \"admin\",\n  \"permissions\": [\"read\", \"update\"]\n}"
+              "raw": "{\n  \"feePercentage\": 0.7\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/admin/roles",
+              "raw": "{{base_url}}/admin/fee",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "roles"]
+              "path": ["admin", "fee"]
             }
           },
           "response": []
@@ -262,7 +184,7 @@
       ]
     },
     {
-      "name": "Payments",
+      "name": "Payment Routes",
       "item": [
         {
           "name": "Process Payment",
@@ -276,23 +198,24 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 100\n}"
+              "raw": "{\n  \"userId\": \"60d5f9b8f9d4e30a5c8b4567\",\n  \"amount\": 100.00\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/payments",
+              "raw": "{{base_url}}/payments",
               "host": ["{{base_url}}"],
-              "path": ["api", "payments"]
+              "path": ["payments"]
             }
           },
           "response": []
         },
         {
-          "name": "Get Payment History for User",
+          "name": "Get Payments for a User",
           "request": {
             "method": "GET",
             "header": [
@@ -303,9 +226,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/payments/user/{{userId}}",
+              "raw": "{{base_url}}/payments/user/{{userId}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "payments", "user", "{{userId}}"]
+              "path": ["payments", "user", "{{userId}}"]
             }
           },
           "response": []
@@ -313,7 +236,7 @@
       ]
     },
     {
-      "name": "Tasks",
+      "name": "Task Routes",
       "item": [
         {
           "name": "Create Task",
@@ -327,17 +250,37 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Design Homepage\",\n  \"description\": \"Create a responsive homepage design.\",\n  \"teamId\": \"{{teamId}}\",\n  \"assignedTo\": \"{{assignedUserId}}\"\n}"
+              "raw": "{\n  \"title\": \"Implement Feature X\",\n  \"description\": \"Details about Feature X implementation.\",\n  \"teamId\": \"60d5f8a4f9d4e30a5c8b1234\",\n  \"assignedTo\": \"60d5f9b8f9d4e30a5c8b4567\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/tasks",
+              "raw": "{{base_url}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "tasks"]
+              "path": ["tasks"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tasks/{{taskId}}",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "{{taskId}}"]
             }
           },
           "response": []
@@ -354,7 +297,8 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -362,9 +306,28 @@
               "raw": "{\n  \"status\": \"E\",\n  \"review\": \"approved\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/tasks/{{taskId}}",
+              "raw": "{{base_url}}/tasks/{{taskId}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "tasks", "{{taskId}}"]
+              "path": ["tasks", "{{taskId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tasks/{{taskId}}",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "{{taskId}}"]
             }
           },
           "response": []
@@ -381,9 +344,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tasks",
+              "raw": "{{base_url}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "tasks"]
+              "path": ["tasks"]
             }
           },
           "response": []
@@ -391,7 +354,7 @@
       ]
     },
     {
-      "name": "Teams",
+      "name": "Team Routes",
       "item": [
         {
           "name": "Create Team",
@@ -405,17 +368,56 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Development Team\",\n  \"members\": [\"{{memberUserId1}}\", \"{{memberUserId2}}\"]\n}"
+              "raw": "{\n  \"name\": \"Development Team\",\n  \"members\": [\"60d5f9b8f9d4e30a5c8b4567\", \"60d5f9c1f9d4e30a5c8b4568\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/teams",
+              "raw": "{{base_url}}/teams",
               "host": ["{{base_url}}"],
-              "path": ["api", "teams"]
+              "path": ["teams"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Team by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teams/{{teamId}}",
+              "host": ["{{base_url}}"],
+              "path": ["teams", "{{teamId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Team",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teams/{{teamId}}",
+              "host": ["{{base_url}}"],
+              "path": ["teams", "{{teamId}}"]
             }
           },
           "response": []
@@ -432,17 +434,18 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"invitee@example.com\"\n}"
+              "raw": "{\n  \"email\": \"jane@example.com\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/teams/{{teamId}}/invite",
+              "raw": "{{base_url}}/teams/{{teamId}}/invite",
               "host": ["{{base_url}}"],
-              "path": ["api", "teams", "{{teamId}}", "invite"]
+              "path": ["teams", "{{teamId}}", "invite"]
             }
           },
           "response": []
@@ -453,15 +456,19 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
+                "key": "Content-Type",
+                "value": "application/json",
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword123!\"\n}"
+            },
             "url": {
-              "raw": "{{base_url}}/api/teams/{{teamId}}/accept",
+              "raw": "{{base_url}}/teams/invite/accept/{{inviteToken}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "teams", "{{teamId}}", "accept"]
+              "path": ["teams", "invite", "accept", "{{inviteToken}}"]
             }
           },
           "response": []
@@ -478,83 +485,161 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/teams",
+              "raw": "{{base_url}}/teams",
               "host": ["{{base_url}}"],
-              "path": ["api", "teams"]
+              "path": ["teams"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Routes",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expertise List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/expertise",
+              "host": ["{{base_url}}"],
+              "path": ["users", "expertise"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Countries List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/countries",
+              "host": ["{{base_url}}"],
+              "path": ["users", "countries"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\",\n  \"skill\": \"Senior Developer\",\n  \"country\": \"India\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Peer IDs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/peerids",
+              "host": ["{{base_url}}"],
+              "path": ["users", "peerids"]
             }
           },
           "response": []
         }
       ]
     }
-  ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:5000"
-    },
-    {
-      "key": "token",
-      "value": ""
-    },
-    {
-      "key": "super_admin_token",
-      "value": ""
-    },
-    {
-      "key": "userId",
-      "value": ""
-    },
-    {
-      "key": "teamId",
-      "value": ""
-    },
-    {
-      "key": "taskId",
-      "value": ""
-    },
-    {
-      "key": "assignedUserId",
-      "value": ""
-    },
-    {
-      "key": "memberUserId1",
-      "value": ""
-    },
-    {
-      "key": "memberUserId2",
-      "value": ""
-    },
-    {
-      "key": "resettoken",
-      "value": ""
-    }
-  ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [],
-        "type": "text/javascript"
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "exec": [],
-        "type": "text/javascript"
-      }
-    }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string",
-        "description": "JWT Token"
-      }
-    ]
-  }
+  ]
 }

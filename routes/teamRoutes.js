@@ -1,5 +1,14 @@
+// routes/teamRoutes.js
+
 const express = require('express');
-const { createTeam, inviteMember, acceptInvitation, getTeams } = require('../controllers/teamController');
+const {
+  createTeam,
+  inviteMember,
+  acceptInvitation,
+  getTeams,
+  getTeamById,
+  deleteTeam,
+} = require('../controllers/teamController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
@@ -10,6 +19,12 @@ router.use(protect);
 
 // @route   POST /api/teams
 router.post('/', authorizeRoles('admin', 'super_admin'), createTeam);
+
+// @route   GET /api/teams/:id
+router.get('/:id', authorizeRoles('admin', 'super_admin', 'user'), getTeamById);
+
+// @route   DELETE /api/teams/:id
+router.delete('/:id', authorizeRoles('admin', 'super_admin'), deleteTeam);
 
 // @route   POST /api/teams/:teamId/invite
 router.post('/:teamId/invite', authorizeRoles('admin', 'super_admin'), inviteMember);

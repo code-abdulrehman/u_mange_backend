@@ -2,16 +2,21 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const dotenv = require('dotenv');
 const sendEmail = require('../utils/sendEmail');
-
+const Setting = require('../models/Setting');
 dotenv.config();
 
 // @desc    Process a new payment
 // @route   POST /api/payments
 // @access  Private (Authenticated Users)
+
 exports.processPayment = async (req, res) => {
   const { userId, amount } = req.body;
 
   try {
+    // Fetch current fee percentage
+    const settings = await Setting.findOne();
+    const feePercentage = settings ? settings.feePercentage : 0.7;
+
     // Find the user receiving the payment
     const recipient = await User.findById(userId);
 
@@ -19,14 +24,9 @@ exports.processPayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Recipient not found' });
     }
 
-    // Calculate fee if recipient is superadmin
-    let fee = 0;
-    if (recipient.role === 'super_admin') {
-      fee = parseFloat((amount * 0.005).toFixed(2)); // 0.5% fee
-    }
-
-    // Total amount after fee
-    const totalAmount = fee > 0 ? parseFloat((amount + fee).toFixed(2)) : amount;
+    // Calculate fee
+    const fee = parseFloat(((amount * feePercentage) / 100).toFixed(2)); // 0.7% fee
+    const totalAmount = parseFloat((amount + fee).toFixed(2));
 
     // Create a new payment
     const payment = new Payment({
@@ -44,24 +44,27 @@ exports.processPayment = async (req, res) => {
     recipient.payments.push(payment._id);
     await recipient.save();
 
-    // If fee exists, add it to superadmin's account
-    if (fee > 0) {
-      const superAdminId = process.env.SUPERADMIN_USER_ID;
-      const superAdmin = await User.findById(superAdminId);
+    // Add fee to Super Admin's account
+    const superAdminId = process.env.SUPERADMIN_USER_ID;
+    const superAdmin = await User.findById(superAdminId);
 
-      if (superAdmin) {
-        superAdmin.payments.push(payment._id);
-        await superAdmin.save();
+    if (superAdmin) {
+      superAdmin.payments.push(payment._id);
+      await superAdmin.save();
 
-        // Optionally, notify superadmin via email
-        const message = `Hello ${superAdmin.first_name},\n\nA transaction of $${fee} has been added as a fee from a payment of $${amount}.`;
+      // Notify Super Admin via email
+      const message = `Hello ${superAdmin.first_name},
 
-        await sendEmail({
-          email: superAdmin.email,
-          subject: 'Transaction Fee Applied',
-          message,
-        });
-      }
+A transaction of $${fee} has been added as a fee from a payment of $${amount}.
+
+Regards,
+Your Application Team`;
+
+      await sendEmail({
+        email: superAdmin.email,
+        subject: 'Transaction Fee Applied',
+        message,
+      });
     }
 
     res.status(201).json({ success: true, data: payment });
@@ -70,7 +73,6 @@ exports.processPayment = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
-
 // @desc    Get all payments
 // @route   GET /api/payments
 // @access  Private (Admin, Super Admin)

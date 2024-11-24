@@ -1,15 +1,14 @@
-// server.js
-
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const cors = require('cors');
 const Setting = require('./models/Setting');
 const { ExpressPeerServer } = require('peer');
-const http = require('http'); // Import the HTTP module
+const http = require('http');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+
 // Load environment variables
 dotenv.config();
 
@@ -23,22 +22,27 @@ const app = express();
 app.use(mongoSanitize());
 app.use(helmet());
 
-const limiter = rateLimit({
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again after 15 minutes',
 });
 
+// Apply rate limiter only to API routes
+app.use('/api', apiLimiter);
 
-app.use(limiter);
 app.use(express.json());
 app.use(
   cors({
-    origin: ['https://e-setup.vercel.app', 'https://localhost:8080', 'https://localhost:8081', 'https://e-setup-backend.vercel.app'], // Allowed origins
+    origin: [
+      'https://e-setup.vercel.app',
+      'http://localhost:8080',
+      'http://localhost:8081',
+      'https://e-setup-backend.vercel.app',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   })
 );
-
 
 // Initialize settings if not present
 const initializeSettings = async () => {
@@ -63,10 +67,16 @@ app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/teams', require('./routes/teamRoutes'));
 
-// Error Handling Middleware (Optional)
+// Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err.stack);
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error',
+  });
 });
 
 // Create an HTTP server from the Express app
@@ -75,11 +85,11 @@ const server = http.createServer(app);
 // Initialize PeerJS server
 const peerServer = ExpressPeerServer(server, {
   debug: true,
-  path: '/peerjs',
+  path: '/peer', // Use a unique path
 });
 
 // Use PeerJS server middleware
-app.use('/peerjs', peerServer);
+app.use('/peer', peerServer);
 
 // Define PORT
 const PORT = process.env.PORT || 5000;

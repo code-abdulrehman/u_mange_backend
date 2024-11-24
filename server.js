@@ -32,7 +32,13 @@ const limiter = rateLimit({
 
 app.use(limiter);
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: ['https://e-setup.vercel.app', 'https://localhost:8080', 'https://localhost:8081', 'https://e-setup-backend.vercel.app'], // Allowed origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  })
+);
+
 
 // Initialize settings if not present
 const initializeSettings = async () => {

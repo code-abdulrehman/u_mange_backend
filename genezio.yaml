@@ -1,0 +1,29 @@
+name: e_setup
+version: 1
+backend:
+  language:
+    name: js
+  functions:
+    # Admin Controller Functions
+    - name: adminController
+      path: ./controllers/adminController.js
+
+    # Auth Controller Functions
+    - name: authController
+      path: ./controllers/authController.js
+
+    # Payment Controller Functions
+    - name: paymentController
+      path: ./controllers/paymentController.js
+
+    # Task Controller Functions
+    - name: taskController
+      path: ./controllers/taskController.js
+
+    # Team Controller Functions
+    - name: teamController
+      path: ./controllers/teamController.js
+
+    # User Controller Functions
+    - name: userController
+      path: ./controllers/userController.js

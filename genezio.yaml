@@ -8,6 +8,15 @@ backend:
     language:
         name: js
     path: ./
+frontend:
+    path: .
+    publish: dist
+    scripts:
+        build:
+            - npm run build
+        deploy:
+            - npm install
+    subdomain: esetupbackend0
 name: esetupbackend0
 region: us-east-1
 yamlVersion: 2

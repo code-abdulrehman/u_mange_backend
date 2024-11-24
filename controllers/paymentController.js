@@ -45,26 +45,24 @@ exports.processPayment = async (req, res) => {
     await recipient.save();
 
     // Add fee to Super Admin's account
-    const superAdminId = process.env.SUPERADMIN_USER_ID;
-    const superAdmin = await User.findById(superAdminId);
+      // Add fee to the earliest registered Super Admin's account
+      const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
+
 
     if (superAdmin) {
       superAdmin.payments.push(payment._id);
       await superAdmin.save();
 
-      // Notify Super Admin via email
-      const message = `Hello ${superAdmin.first_name},
-
-A transaction of $${fee} has been added as a fee from a payment of $${amount}.
-
-Regards,
-Your Application Team`;
-
-      await sendEmail({
-        email: superAdmin.email,
-        subject: 'Transaction Fee Applied',
-        message,
-      });
+      
+    await sendEmail({
+      email: superAdmin.email,
+        subject: `Payment Received`,
+        template: 'paymentTemplate.html',
+        context: {
+          team_name: recipient.username, 
+          amount: fee,
+        },
+    });
     }
 
     res.status(201).json({ success: true, data: payment });

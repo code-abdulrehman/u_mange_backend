@@ -136,7 +136,7 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
     // Send email
-    const resetUrl = `${process.env.CLIENT_URL}/verify-token/${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL}/auth/verify-token/${resetToken}`;
 
 try {
   await sendEmail({
@@ -155,7 +155,7 @@ try {
   return res.status(500).json({ success: false, message: 'Email could not be sent' });
 }    
 
-    res.status(200).json({ success: true, message: 'Email sent' });
+    res.status(200).json({ success: true, message: 'Email sent', token: resetToken });
   } catch (error) {
     console.error(error);
     User.resetPasswordToken = undefined;

@@ -103,7 +103,7 @@ exports.login = async (req, res) => {
 
     const token = user.getSignedJwtToken();
 
-    res.status(200).json({ success: true, token, peerId: user.peerId });
+    res.status(200).json({ success: true, token, user });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');

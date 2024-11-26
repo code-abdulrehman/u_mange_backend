@@ -1,5 +1,4 @@
-// routes/teamRoutes.js
-
+// @desc Routes for team invitations
 const express = require('express');
 const {
   createTeam,
@@ -8,6 +7,8 @@ const {
   getTeams,
   getTeamById,
   deleteTeam,
+  getAllInvites,
+  declineInvitation,
 } = require('../controllers/teamController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
@@ -17,22 +18,21 @@ const router = express.Router();
 // All routes are protected
 router.use(protect);
 
-// @route   POST /api/teams
+// Fetch all invites (to and from based on role)
+router.get('/invites', getAllInvites);
+
+// Accept an invitation (User only)
+router.post('/invite/accept/:inviteToken', authorizeRoles('user'), acceptInvitation);
+
+// Decline an invitation (All roles)
+router.post('/invite/decline/:inviteToken', declineInvitation);
+
+
+// Other team-related routes
 router.post('/', authorizeRoles('admin', 'super_admin'), createTeam);
-
-// @route   GET /api/teams/:id
 router.get('/:id', authorizeRoles('admin', 'super_admin', 'user'), getTeamById);
-
-// @route   DELETE /api/teams/:id
 router.delete('/:id', authorizeRoles('admin', 'super_admin'), deleteTeam);
-
-// @route   POST /api/teams/:teamId/invite
-router.post('/:teamId/invite', authorizeRoles('admin', 'super_admin'), inviteMember);
-
-// Route to handle accepting invitations (public access)
-router.post('/invite/accept/:inviteToken', acceptInvitation);
-
-// @route   GET /api/teams
+router.post('/:teamId/invite', authorizeRoles('admin', 'super_admin', 'user'), inviteMember);
 router.get('/', getTeams);
 
 module.exports = router;

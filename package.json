@@ -24,6 +24,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.2",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "peer": "^1.0.2",
     "uuid": "^11.0.3"

@@ -55,6 +55,13 @@ exports.inviteMember = async (req, res) => {
     if (team.members.includes(user._id)) {
       return res.status(400).json({ success: false, message: 'User is already a team member' });
     }
+        // Check if an active invitation already exists
+        const existingInvite = user.invitations.find(
+          (invite) => invite.team.toString() === team._id.toString() && invite.status === 'pending'
+        );
+        if (existingInvite) {
+          return res.status(400).json({ success: false, message: 'Invitation already sent' });
+        }
 
 
     // Generate invitation token
@@ -63,7 +70,7 @@ exports.inviteMember = async (req, res) => {
 
     // Set invitation token and expiration in user document
     user.invitationToken = hashedInviteToken;
-    user.invitationExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.invitationExpire = Date.now() + 10 * 24 * 60 * 60 * 1000;// 10 days
     user.invitedTeam = team._id;
 
     await user.save({ validateBeforeSave: false });
@@ -94,79 +101,260 @@ exports.inviteMember = async (req, res) => {
   }
 };
 
-// @desc    Accept team invitation
-// @route   POST /api/teams/:teamId/accept
+// @desc    Get all invites (to and from based on user role)
+// @route   GET /api/teams/invites
+// @access  Private (Super Admin: All, Others: Restricted)
+// exports.getAllInvites = async (req, res) => {
+//   try {
+//     const { role, id: userId } = req.user;
+
+//     let toInvites, fromInvites;
+
+//     if (role === 'super_admin') {
+//       // Super Admin: Get all incoming and outgoing invites
+//       toInvites = await User.find({ invitationToken: { $exists: true } })
+//         .select('invitations invitationToken invitationExpire')
+//         .populate({
+//           path: 'invitations',
+//           select: 'name created_by',
+//           populate: { path: 'created_by', select: 'username email' },
+//         });
+//         toInvites = await User.find({ 'invitations.status': { $exists: true } })
+//         .select('invitations')
+//         .populate({
+//           path: 'invitations.team',
+//           select: 'name created_by',
+//           populate: { path: 'created_by', select: 'username email' },
+//         });
+
+
+//       fromInvites = await Team.find()
+//         .select('name members created_by')
+//         .populate({
+//           path: 'members',
+//           select: 'username email',
+//         })
+//         .populate({
+//           path: 'created_by',
+//           select: 'username email',
+//         });
+//     } else {
+//       // Regular Users: Fetch only their invites
+//       const user = await User.findById(userId)
+//         .select('invitations invitationToken invitationExpire')
+//         .populate({
+//           path: 'invitations',
+//           select: 'name created_by',
+//           populate: { path: 'created_by', select: 'username email' },
+//         });
+
+//       if (!user) {
+//         return res.status(404).json({ success: false, message: 'User not found' });
+//       }
+
+//       toInvites = user.invitations.map((invite) => ({
+//         teamId: invite._id,
+//         teamName: invite.name,
+//         status: invite.status,
+//         invitedBy: invite.created_by ? {
+//           id: invite.created_by._id,
+//           username: invite.created_by.username,
+//           email: invite.created_by.email,
+//         } : null,
+//         inviteToken: user.invitationToken, // Only relevant for users
+//         inviteExpires: user.invitationExpire,
+//       }));
+
+//       fromInvites = await Team.find({ created_by: userId })
+//         .select('name members')
+//         .populate({
+//           path: 'members',
+//           select: 'username email',
+//         });
+//     }
+
+//     const invites = {
+//       to: toInvites,
+//       from: fromInvites.map((team) => ({
+//         teamId: team._id,
+//         teamName: team.name,
+//         invitedMembers: team.members.map((member) => ({
+//           id: member._id,
+//           username: member.username,
+//           email: member.email,
+//         })),
+//       })),
+//     };
+
+//     res.status(200).json({ success: true, data: invites });
+//   } catch (error) {
+//     console.error(error.message);
+//     res.status(500).send('Server Error');
+//   }
+// };
+exports.getAllInvites = async (req, res) => {
+  try {
+    const { role, id: userId } = req.user;
+
+    let toInvites = [];
+    let fromInvites = [];
+
+    if (role === 'super_admin') {
+      // Super Admin: Get all incoming and outgoing invites
+      const usersWithInvitations = await User.find({ invitationToken: { $exists: true } })
+        .select('invitations invitationToken invitationExpire')
+        .populate({
+          path: 'invitations',
+          select: 'name status team', // Including 'team' to get teamId
+        });
+
+      if (usersWithInvitations && usersWithInvitations.length > 0) {
+        toInvites = await Promise.all(usersWithInvitations.flatMap(async user => {
+          if (user.invitations && user.invitations.length > 0) {
+            return Promise.all(user.invitations.map(async (invite) => {
+              const team = await Team.findById(invite.team)
+                .select('created_by name')
+                .populate({
+                  path: 'created_by',
+                  select: 'username email',
+                });
+
+              return {
+                teamId: invite.team,
+                teamName: team ? team.name : null,
+                status: invite.status,
+                invitedBy: team && team.created_by ? {
+                  id: team.created_by._id,
+                  username: team.created_by.username,
+                  email: team.created_by.email,
+                } : null,
+                inviteToken: user.invitationToken,
+                inviteExpires: user.invitationExpire,
+              };
+            }));
+          }
+          return [];
+        }));
+      }
+    } else {
+      // Regular Users: Fetch only their invites
+      const user = await User.findById(userId)
+        .select('invitations invitationToken invitationExpire')
+        .populate({
+          path: 'invitations',
+          select: 'name status team', // Including 'team' to get teamId
+        });
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      if (user.invitations && user.invitations.length > 0) {
+        toInvites = await Promise.all(user.invitations.map(async (invite) => {
+          const team = await Team.findById(invite.team)
+            .select('created_by name')
+            .populate({
+              path: 'created_by',
+              select: 'username email',
+            });
+
+          return {
+            teamId: invite.team,
+            teamName: team ? team.name : null,
+            status: invite.status,
+            invitedBy: team && team.created_by ? {
+              id: team.created_by._id,
+              username: team.created_by.username,
+              email: team.created_by.email,
+            } : null,
+            inviteToken: user.invitationToken, // Only relevant for users
+            inviteExpires: user.invitationExpire,
+          };
+        }));
+      }
+
+      fromInvites = await Team.find({ created_by: userId })
+        .select('name members created_by')
+        .populate({
+          path: 'members',
+          select: 'username email',
+        })
+        .populate({
+          path: 'created_by',
+          select: 'username email',
+        });
+    }
+
+    const invites = {
+      to: Array.isArray(toInvites) ? toInvites : [],
+      from: Array.isArray(fromInvites) ? fromInvites.map((team) => ({
+        teamId: team._id,
+        teamName: team.name,
+        invitedMembers: team.members.map((member) => ({
+          id: member._id,
+          username: member.username,
+          email: member.email,
+        })),
+        createdBy: team.created_by ? {
+          id: team.created_by._id,
+          username: team.created_by.username,
+          email: team.created_by.email,
+        } : null,
+      })) : [],
+    };
+
+    res.status(200).json({ success: true, data: invites });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
 // @access  Private (User)
+// @desc    Accept team invitation
+// @route   POST /api/teams/invite/accept/:inviteToken
+// @access  Private (User Only)
 exports.acceptInvitation = async (req, res) => {
   const { inviteToken } = req.params;
-  const { password } = req.body; // Optionally, set a password if user is not registered
 
   try {
-    // Hash the token
+    const { role, id: userId } = req.user;
+
+    // Restrict accept functionality to users only
+    if (role !== 'user') {
+      return res.status(403).json({ success: false, message: 'Not authorized to accept invitations' });
+    }
+
     const hashedToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
 
-    // Find user with matching invitation token and not expired
     const user = await User.findOne({
-      invitationToken: hashedToken,
-      invitationExpire: { $gt: Date.now() },
+      'invitations.token': hashedToken,
+      'invitations.expireAt': { $gt: Date.now() },
+      'invitations.status': 'pending',
     });
 
     if (!user) {
       return res.status(400).json({ success: false, message: 'Invalid or expired invitation token' });
     }
 
-    // Add user to team
     const team = await Team.findById(user.invitedTeam);
 
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
+    // Add user to the team
     team.members.push(user._id);
     await team.save();
 
     // Add team to user's teams
     user.teams.push(team._id);
-
-    // Clear invitation fields
     user.invitationToken = undefined;
     user.invitationExpire = undefined;
     user.invitedTeam = undefined;
-
-    // Optionally, set password if provided
-    if (password) {
-      user.password = password;
-    }
-
+    invitation.status = 'accepted';
     await user.save();
-
-     // Optionally, send confirmation email to inviter
-     const inviter = await User.findById(team.created_by); // Assuming 'created_by' is the inviter
-
-     if (inviter) {
-       await sendEmail({
-         email: inviter.email,
-         subject: 'Your Team Invitation Has Been Accepted',
-         template: 'invitationAcceptedTemplate2.html',
-         context: {
-           invitee_name: user.first_name,
-           team_name: team.name,
-         }
-       });
-     }
-
-     await sendEmail({
-      email: user.email,
-      subject: `Welcome to the Team: ${team.name}`,
-      template: 'invitationAcceptedTemplate.html', // Reuse welcome template or create a specific one
-      context: {
-        first_name:  user.first_name,
-        team_name: team.name,
-        team_url: `${process.env.CLIENT_URL}/teams/team/${team.id}`,
-      }
-    });
-
-
 
     res.status(200).json({ success: true, message: 'Invitation accepted and team joined successfully' });
   } catch (error) {
@@ -174,6 +362,44 @@ exports.acceptInvitation = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+// @desc    Decline a team invitation
+// @route   POST /api/teams/invite/decline/:inviteToken
+// @access  Private (All Roles)
+exports.declineInvitation = async (req, res) => {
+  const { inviteToken } = req.params;
+
+  try {
+    const hashedToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
+
+    const user = await User.findOne({
+      'invitations.token': hashedToken,
+      'invitations.expireAt': { $gt: Date.now() },
+      'invitations.status': 'pending',
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired invitation token' });
+    }
+
+    // Clear the invitation details
+    user.invitationToken = undefined;
+    user.invitationExpire = undefined;
+    user.invitedTeam = undefined;
+
+    const invitation = user.invitations.find((invite) => invite.token === hashedToken);
+    invitation.status = 'declined';
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Invitation declined successfully' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+
 
 // @desc    Get all teams
 // @route   GET /api/teams
@@ -183,9 +409,15 @@ exports.getTeams = async (req, res) => {
     let teams;
 
     if (req.user.role === 'admin' || req.user.role === 'super_admin') {
-      teams = await Team.find().populate('members', 'username email  skill per_hour_rate expertise');
+      // Fetch all teams for Admin/Super Admin
+      teams = await Team.find()
+        .populate('members', 'username email skill per_hour_rate expertise')
+        .populate('created_by', 'username email'); // Populate created_by field
     } else {
-      teams = await Team.find({ members: req.user.id }).populate('members', 'username email skill per_hour_rate expertise');
+      // Fetch only teams the user is a member of
+      teams = await Team.find({ members: req.user.id })
+        .populate('members', 'username email skill per_hour_rate expertise')
+        .populate('created_by', 'username email'); // Populate created_by field
     }
 
     res.status(200).json({ success: true, count: teams.length, data: teams });
@@ -194,6 +426,7 @@ exports.getTeams = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
 
 
 // @desc    Get single team by ID

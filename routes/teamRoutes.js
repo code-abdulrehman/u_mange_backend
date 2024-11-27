@@ -18,8 +18,9 @@ const router = express.Router();
 // All routes are protected
 router.use(protect);
 
+
 // Fetch all invites (to and from based on role)
-router.get('/invites', getAllInvites);
+router.get('/invites', authorizeRoles('admin', 'super_admin', 'user'), getAllInvites);
 
 // Accept an invitation (User only)
 router.post('/invite/accept/:inviteToken', authorizeRoles('user'), acceptInvitation);

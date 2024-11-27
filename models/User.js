@@ -2,6 +2,17 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+
+const InvitationSchema = new mongoose.Schema({
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', required: true },
+  token: { type: String, required: true },        
+  expireAt: { 
+    type: Date, 
+    index: { expireAfterSeconds: 0 }
+  },
+  status: { type: String, enum: ['pending', 'accepted', 'declined', 'expired'], default: 'pending' },
+});
+
 const UserSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true },
@@ -28,17 +39,7 @@ const UserSchema = new mongoose.Schema(
     tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
     last_online: { type: Date },
     teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
-    invitations: [
-      {
-        team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
-        token: String,
-        expireAt: { 
-          type: Date, 
-          index: { expireAfterSeconds: 0 }
-        },
-        status: { type: String, enum: ['pending', 'accepted', 'declined', 'expired'], default: 'pending' },
-      },
-    ],
+    invitations: [ InvitationSchema ],
     role: { type: String, enum: ['user', 'admin', 'super_admin'], default: 'user' },
     requests: [{ type: String }],
     profile_img: { type: String },

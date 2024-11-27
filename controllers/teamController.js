@@ -3,7 +3,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
 
-// @desc    Create a new team
+// @desc    Create a new 
 // @route   POST /api/teams
 // @access  Private (Admin, Super Admin)
 exports.createTeam = async (req, res) => {
@@ -573,6 +573,7 @@ exports.getTeamById = async (req, res) => {
 // @route   DELETE /api/teams/:id
 // @access  Private (Admin, Super Admin, Team Creator)
 exports.deleteTeam = async (req, res) => {
+
   try {
     const team = await Team.findById(req.params.id);
 
@@ -599,7 +600,8 @@ exports.deleteTeam = async (req, res) => {
     // For example, you might want to delete all tasks under this team or reassign them
 
     // Finally, delete the team
-    await team.remove();
+    await Team.findByIdAndDelete(team._id);
+
 
     res.status(200).json({ success: true, message: 'Team removed' });
   } catch (error) {

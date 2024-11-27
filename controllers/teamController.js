@@ -271,7 +271,7 @@ exports.getAllInvites = async (req, res) => {
         });
 
       // Debugging: Log fetched users
-      console.log('All Users with Invites:', JSON.stringify(allUsersWithInvites, null, 2));
+      // console.log('All Users with Invites:', JSON.stringify(allUsersWithInvites, null, 2));
 
       toInvites = allUsersWithInvites.map(user => ({
         userId: user._id,
@@ -312,7 +312,7 @@ exports.getAllInvites = async (req, res) => {
         });
 
       // Debugging: Log fetched teams
-      console.log('All Teams with Invites:', JSON.stringify(allTeamsWithInvites, null, 2));
+      // console.log('All Teams with Invites:', JSON.stringify(allTeamsWithInvites, null, 2));
 
       fromInvites.teamInvites = allTeamsWithInvites.map(team => ({
         teamId: team._id,
@@ -345,7 +345,7 @@ exports.getAllInvites = async (req, res) => {
         });
 
       // Debugging: Log fetched user invites
-      console.log('User with Invites:', JSON.stringify(userWithInvites, null, 2));
+      // console.log('User with Invites:', JSON.stringify(userWithInvites, null, 2));
 
       if (userWithInvites && userWithInvites.invitations.length > 0) {
         toInvites = userWithInvites.invitations.map(invitation => {
@@ -386,7 +386,7 @@ exports.getAllInvites = async (req, res) => {
         });
 
       // Debugging: Log fetched user teams
-      console.log('User Teams:', JSON.stringify(userTeams, null, 2));
+      // console.log('User Teams:', JSON.stringify(userTeams, null, 2));
 
       fromInvites.teamInvites = userTeams.map(team => ({
         teamId: team._id,

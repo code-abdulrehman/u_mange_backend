@@ -34,49 +34,106 @@ exports.createTeam = async (req, res) => {
 // @desc    Invite a member to a team
 // @route   POST /api/teams/:teamId/invite
 // @access  Private (Team Lead, Admin, Super Admin)
+// exports.inviteMember = async (req, res) => {
+//   const { email } = req.body;
+//   const { teamId } = req.params;
+
+//   try {
+//     const team = await Team.findById(teamId);
+
+//     if (!team) {
+//       return res.status(404).json({ success: false, message: 'Team not found' });
+//     }
+
+//     // Check if already a member
+//     const user = await User.findOne({ email });
+
+//     if (!user) {
+//       return res.status(404).json({ success: false, message: 'User not found' });
+//     }
+
+//     if (team.members.includes(user._id)) {
+//       return res.status(400).json({ success: false, message: 'User is already a team member' });
+//     }
+//         // Check if an active invitation already exists
+//         const existingInvite = user.invitations.find(
+//           (invite) => invite.team.toString() === team._id.toString() && invite.status === 'pending'
+//         );
+//         if (existingInvite) {
+//           return res.status(400).json({ success: false, message: 'Invitation already sent' });
+//         }
+
+
+//     // Generate invitation token
+//     const inviteToken = crypto.randomBytes(20).toString('hex');
+//     const hashedInviteToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
+
+//     // Set invitation token and expiration in user document
+//     user.invitationToken = hashedInviteToken;
+//     user.invitationExpire = Date.now() + 10 * 24 * 60 * 60 * 1000;// 10 days
+//     user.invitedTeam = team._id;
+
+//     await user.save({ validateBeforeSave: false });
+
+//     // Create invitation URL
+//     const inviteUrl = `${process.env.CLIENT_URL}/teams/teaminvite/${inviteToken}`;
+
+//     await sendEmail({
+//       email: user.email,
+//       subject: `Invitation to Join Team: ${team.name}`,
+//       template: 'invitationTemplate.html',
+//       context: {
+//         team_name: team.name,
+//         inviter_name: req.user.first_name || 'Team Lead', // Assuming req.user has first_name
+//         invite_url: inviteUrl,
+//       },
+//     });
+// ;
+
+//     // Add to invitations
+//     user.invitations.push(team._id);
+//     await user.save();
+
+//     res.status(200).json({ success: true, message: 'Invitation sent' });
+//   } catch (error) {
+//     console.error(error.message);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.inviteMember = async (req, res) => {
   const { email } = req.body;
-  const { teamId } = req.params;
+  const teamId = req.params.teamId;
 
   try {
     const team = await Team.findById(teamId);
-
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    // Check if already a member
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Ensure the user is not already a member of the team
     if (team.members.includes(user._id)) {
       return res.status(400).json({ success: false, message: 'User is already a team member' });
     }
-        // Check if an active invitation already exists
-        const existingInvite = user.invitations.find(
-          (invite) => invite.team.toString() === team._id.toString() && invite.status === 'pending'
-        );
-        if (existingInvite) {
-          return res.status(400).json({ success: false, message: 'Invitation already sent' });
-        }
 
+    // Generate a unique token for the invitation
+    const token = crypto.randomBytes(16).toString('hex');
 
-    // Generate invitation token
-    const inviteToken = crypto.randomBytes(20).toString('hex');
-    const hashedInviteToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
+    // Add the invitation
+    user.invitations.push({
+      team: team._id,
+      token: token,
+      expireAt: new Date(Date.now() + 3600000 * 24) // 24 hours from now
+    });
 
-    // Set invitation token and expiration in user document
-    user.invitationToken = hashedInviteToken;
-    user.invitationExpire = Date.now() + 10 * 24 * 60 * 60 * 1000;// 10 days
-    user.invitedTeam = team._id;
-
-    await user.save({ validateBeforeSave: false });
 
     // Create invitation URL
-    const inviteUrl = `${process.env.CLIENT_URL}/teams/teaminvite/${inviteToken}`;
+    const inviteUrl = `${process.env.CLIENT_URL}/teams/teaminvite/${token}`;
 
     await sendEmail({
       email: user.email,
@@ -90,16 +147,14 @@ exports.inviteMember = async (req, res) => {
     });
 ;
 
-    // Add to invitations
-    user.invitations.push(team._id);
     await user.save();
-
-    res.status(200).json({ success: true, message: 'Invitation sent' });
+    res.status(201).json({ success: true, message: 'User invited successfully' });
   } catch (error) {
-    console.error(error.message);
+    console.error('Failed to invite user:', error);
     res.status(500).send('Server Error');
   }
 };
+
 
 // @desc    Get all invites (to and from based on user role)
 // @route   GET /api/teams/invites
@@ -173,60 +228,6 @@ exports.inviteMember = async (req, res) => {
 //         });
 //     }
 
-//     const invites = {
-//       to: toInvites,
-//       from: fromInvites.map((team) => ({
-//         teamId: team._id,
-//         teamName: team.name,
-//         invitedMembers: team.members.map((member) => ({
-//           id: member._id,
-//           username: member.username,
-//           email: member.email,
-//         })),
-//       })),
-//     };
-
-//     res.status(200).json({ success: true, data: invites });
-//   } catch (error) {
-//     console.error(error.message);
-//     res.status(500).send('Server Error');
-//   }
-// };
-
-
-// exports.getAllInvites = async (req, res) => {
-//   try {
-//     const { role, id: userId } = req.user;
-
-//     let toInvites, fromInvites;
-
-//       toInvites = await User.find({ invitationToken: { $exists: true } })
-//         .select('invitations invitationToken invitationExpire')
-//         .populate({
-//           path: 'invitations',
-//           select: 'name created_by',
-//           populate: { path: 'created_by', select: 'username email' },
-//         });
-//         toInvites = await User.find({ 'invitations.status': { $exists: true } })
-//         .select('invitations')
-//         .populate({
-//           path: 'invitations.team',
-//           select: 'name created_by',
-//           populate: { path: 'created_by', select: 'username email' },
-//         });
-
-
-//       fromInvites = await Team.find()
-//         .select('name members created_by')
-//         .populate({
-//           path: 'members',
-//           select: 'username email',
-//         })
-//         .populate({
-//           path: 'created_by',
-//           select: 'username email',
-//         });
-    
 //     const invites = {
 //       to: toInvites,
 //       from: fromInvites.map((team) => ({
